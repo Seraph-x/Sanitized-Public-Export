@@ -1,12 +1,12 @@
 # Sanitized Public Export
 
-A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) skill for publishing a private
-repository as a sanitized public mirror — without leaking a user name, home
-path, e-mail address, credential, or private note.
+A standalone toolkit and agent skill for publishing a private repository as a
+sanitized public mirror — without leaking a user name, home path, e-mail
+address, credential, or private note.
 
-It is also useful outside DSH: the four scripts use only the Python standard
-library and work on any git repository. The DSH-specific part is just SKILL.md
-discovery; the scripts run the same from a shell, a CI job, or a pre-commit hook.
+Four scripts use only the Python standard library; SKILL.md is the procedure an
+agent follows. Nothing here depends on a particular agent framework: run the scripts
+from a shell, a CI job, a pre-commit hook, or any agent that reads SKILL.md.
 
 ## Why
 
@@ -20,22 +20,27 @@ with three deterministic steps:
 | Allowlist | `scripts/export_allowlist.py` | the file list comes from `git ls-files`, so untracked and generated files cannot ride along |
 | Gate | `scripts/scan.py` | every hit is classified as fixture or leak; a single leak stops the pipeline |
 | Mirror | `scripts/mirror_sync.py` | the exported tree replaces the public checkout wholesale, committed as a noreply identity, with the remote head verified |
-| Redact | `scripts/redact.py` | rewrites secrets and personal data in an exported copy; refuses a git checkout |
+| Redact | `scripts/redact.py` | rewrites secrets and personal data, and reports what changed |
 
-## Install as a DSH skill
+## Use it
 
-User-level (all projects):
+Clone it anywhere:
 
-    git clone https://github.com/Seraph-x/Sanitized-Public-Export.git \
-      ~/.dsh/skills/sanitized-public-export
+    git clone https://github.com/Seraph-x/Sanitized-Public-Export.git
 
-Project-level (one repository):
+From a shell or CI job, call the scripts by path:
 
-    git clone https://github.com/Seraph-x/Sanitized-Public-Export.git \
-      .dsh/skills/sanitized-public-export
+    python3 /path/to/Sanitized-Public-Export/scripts/scan.py . --config gate.json
 
-DSH discovers `SKILL.md` under `<skills root>/<name>/` and reloads it without a
-restart.
+As an agent skill, copy or symlink the repository into whatever directory your
+agent scans for skills (the convention is a directory named after the skill that
+contains SKILL.md):
+
+    ln -s /path/to/Sanitized-Public-Export ~/.config/<agent>/skills/sanitized-public-export
+
+A pre-commit hook is the same one line:
+
+    python3 /path/to/Sanitized-Public-Export/scripts/scan.py . --config gate.json
 
 ## Use the scripts directly
 

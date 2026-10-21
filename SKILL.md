@@ -9,19 +9,21 @@ whenToUse: Use when asked to 脱敏发布 / 开源这个项目 / 同步到公开
 A private working tree is full of things that must never leave it: absolute
 paths with a real user name, commit e-mail addresses, cookie values, scratch
 notes, build logs, screenshots with metadata. Deleting a few files by hand is
-not a control. This skill replaces hand work with three deterministic steps:
+not a control. This procedure replaces hand work with four deterministic steps:
 
 1. **Allowlist** — the published file list comes from `git ls-files` filtered by
    prefixes, so untracked and generated files cannot ride along.
-2. **Gate** — a scanner classifies every hit as fixture or leak and refuses to
-   continue while any leak remains.
-3. **Mirror** — the exported tree replaces the public checkout wholesale, with a
+2. **Gate** — a scanner classifies every hit as fixture, retained, or leak, and
+   refuses to continue while a leak remains.
+3. **Redact** — the replacement half: rewrite secrets and personal data in the
+   copy and record what changed.
+4. **Mirror** — the exported tree replaces the public checkout wholesale, with a
    neutral commit identity and a verified remote head.
 
 ## Pick the smallest path
 
 This is a procedure, not a pipeline. Run only the steps the request needs;
-loading the skill never means running all five.
+loading the skill never means running all four.
 
 | Situation | Steps | Command |
 | --- | --- | --- |
@@ -45,9 +47,9 @@ type, a new directory tree. Re-running an unchanged step adds nothing:
 Never run steps 1–3 "for completeness" when the request is only a local audit,
 and never publish a mirror without step 2.
 
-Set the skill directory once per shell:
+Set the toolkit directory once per shell:
 
-    SKILL_DIR="${DSH_HOME:-$HOME/.dsh}/skills/sanitized-public-export"
+    SKILL_DIR=/path/to/Sanitized-Public-Export   # the directory holding this file
 
 ## Ask first: which publication mode?
 
