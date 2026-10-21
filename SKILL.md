@@ -125,10 +125,10 @@ Rules of thumb:
       "allow": []
     }
 
-The gate prints `total / fixture / unexpected` per pattern and exits non-zero while
-Findings are masked by default; `--show-values` prints them verbatim for
-local work only.
-`unexpected` is above zero. Only these count as fixtures:
+The gate prints `total / fixture / retained / unexpected` per pattern and exits
+non-zero while `unexpected` is above zero. Findings are masked by default;
+`--show-values` prints them verbatim for local work only. Only these count as
+fixtures:
 
 - a file listed in `detector_files` (the scanner's own patterns and test data);
 - a line containing a placeholder such as `<user>`, `example.com`, `placeholder`;
