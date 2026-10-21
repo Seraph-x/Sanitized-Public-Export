@@ -126,9 +126,13 @@ value can be replaced rather than deleted:
 It rewrites home paths, user names, e-mail addresses, PEM private keys, GitHub /
 AWS / Slack / OpenAI / Google / npm / PyPI / Docker tokens, JWTs, bearer tokens,
 `scheme://<user>:<password>@host` URLs, cookie values, and `password = …` style
-assignments, then prints a per-category count. It refuses a directory that
-contains `.git`, because rewriting a checkout does not remove a secret from
-history.
+assignments, then prints a per-category count.
+
+On a git checkout it still redacts, and records in the report that history was
+not rewritten. Add `--report FILE` for a Markdown summary and
+`--check-history` to list the commits that still contain each redacted value:
+
+    python3 "$SKILL_DIR/scripts/redact.py" . --report redaction-report.md --check-history
 
 ### Secrets are not a formatting problem
 

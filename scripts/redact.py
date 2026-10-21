@@ -15,8 +15,10 @@ Exit status: 0 clean, 1 changes were required in --dry-run, 2 misuse.
 from __future__ import annotations
 
 import argparse
+import datetime
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -80,6 +82,72 @@ def replace_rule(kind: str, match: re.Match[str], replacement) -> str:
     return match.group(0)
 
 
+def mask(value: str) -> str:
+    if len(value) <= 10:
+        return value[:2] + "…"
+    return value[:6] + "…" + value[-2:]
+
+
+def history_findings(root: Path, values: list[str]) -> list[dict]:
+    findings = []
+    for value in values[:20]:
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(root), "log", "--all", "--oneline", "-S", value, "--max-count", "5"],
+                capture_output=True, text=True, timeout=20,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        commits = [line for line in result.stdout.splitlines() if line.strip()]
+        if commits:
+            findings.append({"value": mask(value), "commits": commits})
+    return findings
+
+
+def write_report(path: Path, root: Path, counts: dict, changed_files: list[str], secrets: list[str],
+                 has_git: bool, history: list[dict], dry_run: bool) -> None:
+    lines = ["# Redaction report", ""]
+    lines.append("- Root: " + str(root))
+    lines.append("- Generated: " + datetime.datetime.now().astimezone().isoformat(timespec="seconds"))
+    lines.append("- Mode: " + ("dry run (nothing written)" if dry_run else "applied"))
+    lines.append("- Files rewritten: " + str(len(changed_files)))
+    lines.append("")
+    lines.append("## Categories")
+    lines.append("")
+    lines.append("| Category | Hits |")
+    lines.append("| --- | --- |")
+    for kind in sorted(counts):
+        lines.append("| " + kind + " | " + str(counts[kind]) + " |")
+    lines.append("")
+    lines.append("## Files")
+    lines.append("")
+    for name in changed_files[:100]:
+        lines.append("- " + name)
+    if len(changed_files) > 100:
+        lines.append("- … " + str(len(changed_files) - 100) + " more")
+    lines.append("")
+    lines.append("## Git history")
+    lines.append("")
+    if not has_git:
+        lines.append("Not a git checkout: nothing to check.")
+    elif history:
+        lines.append("These redacted values still appear in commits:")
+        lines.append("")
+        for item in history:
+            lines.append("- " + item["value"] + " — " + "; ".join(item["commits"]))
+        lines.append("")
+        lines.append("Rotate every value listed above and rewrite the history (for example with "
+                     "git filter-repo) before publishing that repository.")
+    else:
+        lines.append("History was not searched. Re-run with --check-history to list commits that still "
+                     "contain the redacted values.")
+    lines.append("")
+    lines.append("Redacting a working tree does not remove a secret from history: rotate it and rewrite "
+                 "the history if the repository is published.")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def load_config(path: Path | None) -> dict:
     if path is None:
         return {}
@@ -95,17 +163,18 @@ def main() -> int:
     parser.add_argument("root", help="directory to rewrite (an exported copy, not the private checkout)")
     parser.add_argument("--config", help="JSON config with literals and extra patterns")
     parser.add_argument("--dry-run", action="store_true", help="report without writing")
-    parser.add_argument("--allow-git", action="store_true", help="allow a directory that contains .git")
+    parser.add_argument("--report", help="write a Markdown report of what was rewritten")
+    parser.add_argument("--check-history", action="store_true", help="search git history for the redacted values (needs .git)")
+    parser.add_argument("--allow-git", action="store_true", help="deprecated: a .git directory no longer blocks redaction")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
     if not root.is_dir():
         print("not a directory: " + str(root), file=sys.stderr)
         return 2
-    if (root / ".git").exists() and not args.allow_git:
-        print("refusing to rewrite a git checkout: " + str(root), file=sys.stderr)
-        print("rewriting the working tree does not remove a committed secret; export a copy first", file=sys.stderr)
-        return 2
+    has_git = (root / ".git").exists()
+    if has_git and not args.allow_git:
+        print("note: " + str(root) + " is a git checkout; the report will record that history is not rewritten", file=sys.stderr)
 
     config = load_config(Path(args.config) if args.config else None)
     rules = list(RULES)
@@ -116,6 +185,7 @@ def main() -> int:
 
     counts = {}
     changed_files = []
+    secrets_seen = []
     for path in sorted(root.rglob("*")):
         if not path.is_file() or path.is_symlink():
             continue
@@ -133,6 +203,10 @@ def main() -> int:
                 value = replace_rule(kind, match, replacement)
                 if value != match.group(0):
                     counts[kind] = counts.get(kind, 0) + 1
+                    if kind not in ("posix-home", "posix-home-root", "windows-home", "email", "literal"):
+                        raw = match.group(4) if kind == "credential-assignment" else match.group(0)
+                        if raw not in secrets_seen and len(secrets_seen) < 50:
+                            secrets_seen.append(raw)
                 return value
             text = pattern.sub(substitute, text)
         if text != original:
@@ -154,6 +228,10 @@ def main() -> int:
         print("  " + name)
     if len(changed_files) > 20:
         print("  ... " + str(len(changed_files) - 20) + " more")
+    history = history_findings(root, secrets_seen) if (has_git and args.check_history) else []
+    if args.report:
+        write_report(Path(args.report).resolve(), root, counts, changed_files, secrets_seen, has_git, history, args.dry_run)
+        print("report: " + str(Path(args.report).resolve()))
     print()
     if args.dry_run:
         print("RESULT: " + str(sum(counts.values())) + " hit(s) would be rewritten (dry run)")
