@@ -73,9 +73,10 @@ values never land in a commit.
 A hit counts as a fixture when the file is a declared detector, the matched value
 contains a placeholder such as `<user>`, a home path is followed by punctuation
 instead of a name, or the address uses a reserved domain (`example.com`,
-`*.invalid`, `*.test`). Findings are masked by default — every sensitive value on the reported line,
-not just the one that triggered it — so a token cannot leak into a terminal or
-CI log; pass `--show-values` only when working locally.
+`*.invalid`, `*.test`). Findings are masked by default — every sensitive value on the reported line, not
+just the one that triggered it, and a home path hides its user name too — so a
+token or a person cannot leak into a terminal or CI log; pass `--show-values`
+only when working locally.
 
 Values listed in `gate.json`'s `retain` array count as *retained*: they are
 reported, not rewritten, and do not fail the gate. Everything else is a leak.
@@ -90,7 +91,8 @@ precondition: read the diff and the findings before publishing.
 The suite covers the gate (placeholder scope, domain boundaries, non-ASCII user
 names, bearer tokens, retention, whole-line masking, tokens containing placeholder
 words), the exporter (escaping symlinks are skipped, internal ones become relative)
-and the mirror (dry runs neither write nor fetch, publishing is idempotent). CI runs it on Linux and macOS with Python 3.9 and 3.12, then dogfoods
+and the mirror (dry runs neither write nor fetch, an unreachable remote fails the
+preview, a checkout ahead of origin is refused, publishing is idempotent). CI runs it on Linux and macOS with Python 3.9 and 3.12, then dogfoods
 the gate on this repository.
 
 ## Repository layout
