@@ -80,6 +80,9 @@ CI log; pass `--show-values` only when working locally.
 Values listed in `gate.json`'s `retain` array count as *retained*: they are
 reported, not rewritten, and do not fail the gate. Everything else is a leak.
 
+A clean result means no rule matched — not that the tree is safe. Treat it as a
+precondition: read the diff and the findings before publishing.
+
 ## Tests
 
     python3 -m unittest discover -s tests -v

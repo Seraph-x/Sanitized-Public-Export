@@ -152,6 +152,9 @@ Vendor trees are full of upstream authors' addresses; exclude those with
 `skip_globs` rather than allowing the whole `email` pattern. Binary payloads are
 only checked for credentials and home paths.
 
+A clean gate means no rule matched, not that the tree is safe. Treat `RESULT: clean`
+as a precondition: still read the diff and the findings list before publishing.
+
 Fix a leak by editing the source, not by adding an allow rule. Re-run until the
 gate prints `RESULT: clean`.
 
