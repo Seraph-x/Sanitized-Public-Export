@@ -32,6 +32,9 @@ loading the skill never means running all five.
 | Shipping a DMG or other binary | 5 only, plus 2 over the install notes | `scan.py` on the DMG staging directory |
 | Deciding whether a directory can be published at all | 2 only, JSON output | `scan.py DIR --config gate.json --json` |
 
+A bare "make it public" is not a path choice: ask the publication-mode
+question below first.
+
 Escalate only when the input changes shape — a new repository, a new artifact
 type, a new directory tree. Re-running an unchanged step adds nothing:
 
@@ -45,6 +48,37 @@ and never publish a mirror without step 2.
 Set the skill directory once per shell:
 
     SKILL_DIR="${DSH_HOME:-$HOME/.dsh}/skills/sanitized-public-export"
+
+## Ask first: which publication mode?
+
+When the request is "公开这个仓库" / "把这个项目开源" / "make this public", stop
+and ask before touching anything:
+
+> 公开方式有两种：
+> 1. 直接把原仓库的可见性改成 public，保留全部历史；
+> 2. 新建一个全新历史的脱敏公开库，原仓库不动。
+> 你要哪一种？
+
+If the answer is (1), scan the history, show the findings together with the
+risks below, and wait for an explicit confirmation before changing anything:
+
+    git log --all -p | python3 "$SKILL_DIR/scripts/scan.py" /dev/stdin
+
+- the whole history becomes public: absolute paths, scratch documents,
+  credentials committed by accident, author e-mail addresses;
+- clones, forks, and caches cannot be recalled; switching back to private later
+  does not undo them;
+- deleted files stay reachable through history and the API;
+- every secret must be rotated and the history rewritten (git filter-repo);
+  redacting the working tree changes nothing;
+- releases, LFS objects, branches, and pull-request discussion become public.
+
+Only after that confirmation run:
+
+    gh repo edit Owner/Name --visibility public --accept-visibility-change-consequences
+
+If the answer is (2) — "不是改原仓库可见性" / "新建" / "镜像" — continue with the
+steps below. Never choose a mode on the user's behalf.
 
 ## Decide the repository pair first
 
