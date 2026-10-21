@@ -177,6 +177,7 @@ def main() -> int:
         print("note: " + str(root) + " is a git checkout; the report will record that history is not rewritten", file=sys.stderr)
 
     config = load_config(Path(args.config) if args.config else None)
+    retained = [value for value in config.get("retain", []) if isinstance(value, str) and value]
     rules = list(RULES)
     for literal in config.get("literals", []):
         rules.append(("literal", re.compile(re.escape(literal)), "<redacted>"))
@@ -200,6 +201,8 @@ def main() -> int:
         original = text
         for kind, pattern, replacement in rules:
             def substitute(match, kind=kind, replacement=replacement):
+                if any(item in match.group(0) for item in retained):
+                    return match.group(0)
                 value = replace_rule(kind, match, replacement)
                 if value != match.group(0):
                     counts[kind] = counts.get(kind, 0) + 1

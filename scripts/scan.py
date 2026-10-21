@@ -35,6 +35,8 @@ DEFAULT_PATTERNS = {
     "aws-secret": r"aws_secret_access_key\s*[:=]\s*[\"']?[A-Za-z0-9/+=]{40}",
     "credential-assignment": r"(?i)\b(password|passwd|pwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)\b\s*[:=]\s*[\"']?[^\s\"',;]{8,}",
     "cookie": r"\b(?:cf_clearance|PHPSESSID|JSESSIONID|sessionid|session_id|csrf_token|xsrf_token|XSRF-TOKEN|auth_token)\s*=\s*[^\s;,\"']{8,}",
+    "openai-key": r"\bsk-[A-Za-z0-9_-]{20,}\b",
+    "google-api-key": r"\bAIza[0-9A-Za-z_-]{30,}\b",
 }
 
 HOME_PATTERNS = {"posix-home", "linux-home", "windows-home"}
@@ -108,6 +110,7 @@ def scan(root: Path, config: dict) -> dict:
     skip_dirs = set(DEFAULT_SKIP_DIRS) | set(config.get("skip_dirs", []))
     skip_globs = config.get("skip_globs", [])
     allowed = set(config.get("allow", []))
+    retained_values = [value for value in config.get("retain", []) if isinstance(value, str) and value]
     binary_patterns = set(BINARY_PATTERNS) | {name for name in patterns if name.startswith("literal:")}
     binary_patterns |= set(config.get("binary_patterns", []))
     results = {}
@@ -135,10 +138,13 @@ def scan(root: Path, config: dict) -> dict:
             if name in allowed or (binary and name not in binary_patterns):
                 continue
             for match in pattern.finditer(text):
-                fixture = is_fixture(name, text, match, rel, config, placeholders)
                 line_no = text.count("\n", 0, match.start()) + 1
-                entry = results.setdefault(name, {"total": 0, "fixture": 0, "unexpected": 0})
+                entry = results.setdefault(name, {"total": 0, "fixture": 0, "retained": 0, "unexpected": 0})
                 entry["total"] += 1
+                if any(value in match.group(0) for value in retained_values):
+                    entry["retained"] += 1
+                    continue
+                fixture = is_fixture(name, text, match, rel, config, placeholders)
                 entry["fixture" if fixture else "unexpected"] += 1
                 if not fixture:
                     line_end = text.find("\n", match.start())
@@ -169,11 +175,11 @@ def main() -> int:
         return 1 if report["unexpected"] else 0
     print("scanned " + str(report["files"]) + " files under " + report["root"])
     print()
-    print(f"{'pattern':22} {'total':>7} {'fixture':>8} {'unexpected':>11}")
+    print(f"{'pattern':22} {'total':>7} {'fixture':>8} {'retained':>9} {'unexpected':>11}")
     for name in sorted(report["patterns"]):
         entry = report["patterns"][name]
         flag = "" if entry["unexpected"] == 0 else "  LEAK"
-        print(f"{name:22} {entry['total']:>7} {entry['fixture']:>8} {entry['unexpected']:>11}{flag}")
+        print(f"{name:22} {entry['total']:>7} {entry['fixture']:>8} {entry.get('retained', 0):>9} {entry['unexpected']:>11}{flag}")
     if report["findings"]:
         print()
         print("unexpected hits:")

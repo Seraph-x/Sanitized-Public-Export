@@ -147,6 +147,31 @@ only checked for credentials and home paths.
 Fix a leak by editing the source, not by adding an allow rule. Re-run until the
 gate prints `RESULT: clean`.
 
+## Keeping a key on purpose
+
+Sometimes the deliverable must ship a working credential so users can run the
+project — a demo API key, a sandbox token. Declare it instead of disabling a
+whole detector:
+
+    {
+      "retain": ["sk-demo-0123456789abcdefghij"]
+    }
+
+The gate then reports those hits in a @BT@retained@BT@ column and does not fail on them,
+@BT@redact.py@BT@ leaves them untouched, and every other value is still rewritten. The
+report lists what was retained, so the exception is visible rather than silent.
+
+Conditions to state in the same report:
+
+- it is a demo or sandbox credential, scoped to a throwaway account, not a
+  production key with billing attached;
+- it can be revoked and rotated without breaking real users;
+- the README says it is public and rate-limited, so nobody assumes it is a leak;
+- everything else — private keys, personal tokens, cookies — is still redacted.
+
+A retained key is a published key. If it cannot be scoped, revoke it and ship a
+mock instead.
+
 ## Step 2b — rewrite the copy (only when replacement is the right fix)
 
 `scan.py` reports; `redact.py` rewrites. Run it on the exported copy when the
