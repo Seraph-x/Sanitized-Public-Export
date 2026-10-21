@@ -1,0 +1,35 @@
+{
+  "repo_url": "https://github.com/Owner/Name-Public.git",
+  "mirror_dir": "~/src/Name-Public",
+  "branch": "main",
+  "private_repo": "~/src/MyProject",
+  "author": {
+    "name": "Owner",
+    "email": "Owner@users.noreply.github.com"
+  },
+  "include": [
+    "Sources/",
+    "Resources/",
+    "scripts/",
+    "docs/help/"
+  ],
+  "root_files": [
+    "README.md",
+    "PUBLIC_README.md",
+    ".gitignore",
+    "Package.swift"
+  ],
+  "renames": {
+    "PUBLIC_README.md": "README.md"
+  },
+  "license": {
+    "from": "Resources/ThirdParty/LICENSE.GPLv3",
+    "to": "LICENSE"
+  },
+  "gate_config": "gate.json",
+  "protect": [
+    ".git",
+    ".github"
+  ],
+  "push_attempts": 3
+}

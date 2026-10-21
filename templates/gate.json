@@ -1,0 +1,18 @@
+{
+  "literals": [
+    "<your-username>",
+    "<your-email>",
+    "MyProject-Private.git"
+  ],
+  "detector_files": [
+    "scripts/export-public-source.py",
+    "scripts/media-dependencies.json"
+  ],
+  "skip_globs": [
+    "Resources/ThirdParty/**",
+    "**/*.png",
+    "**/*.jpg"
+  ],
+  "placeholders": [],
+  "allow": []
+}
