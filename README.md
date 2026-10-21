@@ -70,13 +70,24 @@ values never land in a commit.
     username                   181      181         0           0
     RESULT: clean
 
-A hit counts as a fixture when the file is a declared detector, the line holds a
-placeholder such as `<user>` or `example.com`, a home path is followed by a
-non-name character, or the address uses a reserved domain (`example.com`,
-`*.invalid`, `*.test`).
+A hit counts as a fixture when the file is a declared detector, the matched value
+contains a placeholder such as `<user>`, a home path is followed by punctuation
+instead of a name, or the address uses a reserved domain (`example.com`,
+`*.invalid`, `*.test`). Findings are masked by default so a token cannot leak
+into a terminal or CI log; pass `--show-values` only when working locally.
 
 Values listed in `gate.json`'s `retain` array count as *retained*: they are
 reported, not rewritten, and do not fail the gate. Everything else is a leak.
+
+## Tests
+
+    python3 -m unittest discover -s tests -v
+
+The suite covers the gate (placeholder scope, domain boundaries, non-ASCII user
+names, bearer tokens, retention, masking), the exporter (symlinks that escape the
+repository) and the mirror (dry runs leave the checkout untouched, publishing is
+idempotent). CI runs it on Linux and macOS with Python 3.9 and 3.12, then dogfoods
+the gate on this repository.
 
 ## Repository layout
 
@@ -88,6 +99,8 @@ reported, not rewritten, and do not fail the gate. Everything else is a leak.
     references/checklist.md      pre-publish checklist and real leaks
     templates/gate.json          starter gate config
     templates/mirror.json        starter mirror config
+    tests/                       regression suite
+    .github/workflows/tests.yml  CI
 
 ## Licence
 

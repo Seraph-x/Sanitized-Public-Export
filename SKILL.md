@@ -98,6 +98,10 @@ Never delete or rename the private repository to free the name.
 
     python3 "$SKILL_DIR/scripts/export_allowlist.py" --repo ~/src/MyProject --output /tmp/export --include Sources/ --include Resources/ --include scripts/ --include docs/help/ --root-file README.md --root-file .gitignore --root-file Package.swift --rename PUBLIC_README.md=README.md --license-from Resources/ThirdParty/LICENSE.GPLv3 --license-to LICENSE
 
+Symlinks are copied as links when they stay inside the repository and skipped
+when they point outside, so the export never carries bytes the allowlist did not
+approve.
+
 Rules of thumb:
 
 - Include only source, tests, build scripts, resources, and user documentation.
@@ -122,6 +126,8 @@ Rules of thumb:
     }
 
 The gate prints `total / fixture / unexpected` per pattern and exits non-zero while
+Findings are masked by default; `--show-values` prints them verbatim for
+local work only.
 `unexpected` is above zero. Only these count as fixtures:
 
 - a file listed in `detector_files` (the scanner's own patterns and test data);

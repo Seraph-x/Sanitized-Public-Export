@@ -35,6 +35,7 @@ DEFAULT_PATTERNS = {
     "aws-secret": r"aws_secret_access_key\s*[:=]\s*[\"']?[A-Za-z0-9/+=]{40}",
     "credential-assignment": r"(?i)\b(password|passwd|pwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)\b\s*[:=]\s*[\"']?[^\s\"',;]{8,}",
     "cookie": r"\b(?:cf_clearance|PHPSESSID|JSESSIONID|sessionid|session_id|csrf_token|xsrf_token|XSRF-TOKEN|auth_token)\s*=\s*[^\s;,\"']{8,}",
+    "bearer-token": r"\bBearer\s+[A-Za-z0-9._~+/=-]{20,}",
     "openai-key": r"\bsk-[A-Za-z0-9_-]{20,}\b",
     "google-api-key": r"\bAIza[0-9A-Za-z_-]{30,}\b",
 }
@@ -85,10 +86,11 @@ def is_fixture(name: str, text: str, match: re.Match[str], rel: str, config: dic
     detector_files = set(config.get("detector_files", []))
     if rel in detector_files:
         return True
-    line_start = text.rfind("\n", 0, match.start()) + 1
-    line_end = text.find("\n", match.end())
-    line = text[line_start: line_end if line_end != -1 else len(text)]
-    if any(token in line for token in placeholders):
+    value = match.group(0)
+    # A placeholder only excuses the value it belongs to, never the whole line.
+    # Addresses are decided by their domain, so a domain that merely contains
+    # "example.com" (notexample.com) is still a leak.
+    if name != "email" and any(token in value for token in placeholders):
         return True
     if name == "basic-auth-url":
         return "<" in match.group(0)
@@ -96,15 +98,32 @@ def is_fixture(name: str, text: str, match: re.Match[str], rel: str, config: dic
         value = match.group(0)
         return "<" in value or "${" in value or "process.env" in value
     if name == "email":
-        domain = match.group(0).rsplit("@", 1)[-1].lower()
-        return any(domain == item.lstrip(".") or domain.endswith(item) for item in RESERVED_EMAIL_DOMAINS)
+        domain = value.rsplit("@", 1)[-1].lower()
+        for item in RESERVED_EMAIL_DOMAINS:
+            bare = item.lstrip(".")
+            if item.startswith("."):
+                if domain.endswith(item):
+                    return True
+            elif domain == bare or domain.endswith("." + bare):
+                return True
+        return False
     if name in HOME_PATTERNS:
         following = text[match.end(): match.end() + 1]
-        return following not in NAME_CHARS
+        # A name may be ASCII or any non-ASCII script; punctuation after the
+        # prefix means the path was written without a user name.
+        if following == "":
+            return True
+        return not (following.isalnum() or ord(following) > 127 or following in "._-")
     return False
 
 
-def scan(root: Path, config: dict) -> dict:
+def mask(value: str) -> str:
+    if len(value) <= 8:
+        return value[:2] + "…"
+    return value[:4] + "…" + value[-2:]
+
+
+def scan(root: Path, config: dict, show_values: bool = False) -> dict:
     patterns = build_patterns(config)
     placeholders = list(DEFAULT_PLACEHOLDERS) + list(config.get("placeholders", []))
     skip_dirs = set(DEFAULT_SKIP_DIRS) | set(config.get("skip_dirs", []))
@@ -147,8 +166,10 @@ def scan(root: Path, config: dict) -> dict:
                 fixture = is_fixture(name, text, match, rel, config, placeholders)
                 entry["fixture" if fixture else "unexpected"] += 1
                 if not fixture:
-                    line_end = text.find("\n", match.start())
-                    snippet = text[match.start(): line_end if line_end != -1 else match.start() + 120]
+                    line_start = text.rfind("\n", 0, match.start()) + 1
+                    line_end = text.find("\n", match.end())
+                    line = text[line_start: line_end if line_end != -1 else len(text)]
+                    snippet = line if show_values else line.replace(match.group(0), mask(match.group(0)))
                     findings.append({"pattern": name, "file": rel, "line": line_no, "snippet": snippet[:160]})
     unexpected = sum(entry["unexpected"] for entry in results.values())
     return {"root": str(root), "files": files, "patterns": results, "findings": findings, "unexpected": unexpected}
@@ -160,12 +181,13 @@ def main() -> int:
     parser.add_argument("--config", help="JSON gate config (patterns, literals, detector_files, placeholders)")
     parser.add_argument("--json", action="store_true", help="emit JSON instead of a table")
     parser.add_argument("--allow", action="append", default=[], help="pattern name to ignore (repeatable)")
+    parser.add_argument("--show-values", action="store_true", help="print matched values unmasked (local use only)")
     args = parser.parse_args()
     root = Path(args.root).resolve()
     if not root.is_dir():
         print("not a directory: " + str(root), file=sys.stderr)
         return 2
-    report = scan(root, load_config(args.config))
+    report = scan(root, load_config(args.config), show_values=args.show_values)
     for name in args.allow:
         report["patterns"].pop(name, None)
         report["findings"] = [item for item in report["findings"] if item["pattern"] != name]

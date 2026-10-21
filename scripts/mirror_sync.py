@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -127,16 +128,45 @@ def gate(stage: Path, config: dict, gate_config: Path | None) -> None:
         die("leak gate found unexpected personal data in the export")
 
 
+def tree_entries(root: Path, protect: set[str]) -> dict[str, str]:
+    """Map relative path to a comparable digest (bytes or symlink target)."""
+    entries = {}
+    for path in root.rglob("*"):
+        rel = path.relative_to(root)
+        if any(part in protect for part in rel.parts):
+            continue
+        if path.is_symlink():
+            entries[rel.as_posix()] = "link:" + os.readlink(path)
+        elif path.is_file():
+            entries[rel.as_posix()] = "sha:" + str(hash(path.read_bytes()))
+    return entries
+
+
+def preview_changes(stage: Path, mirror: Path, protect: set[str]) -> dict[str, list[str]]:
+    """Describe what mirroring would change without touching the checkout."""
+    wanted = tree_entries(stage, protect)
+    current = tree_entries(mirror, protect)
+    added = sorted(set(wanted) - set(current))
+    removed = sorted(set(current) - set(wanted))
+    modified = sorted(name for name in set(wanted) & set(current) if wanted[name] != current[name])
+    return {"added": added, "removed": removed, "modified": modified}
+
+
 def mirror_tree(stage: Path, mirror: Path, protect: set[str]) -> list[str]:
     """Copy the stage over the mirror and delete files that are no longer exported."""
     wanted = set()
     for source in stage.rglob("*"):
-        if source.is_dir():
+        if source.is_dir() and not source.is_symlink():
             continue
         rel = source.relative_to(stage)
         wanted.add(rel.as_posix())
         target = mirror / rel
         target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_symlink() or target.exists():
+            target.unlink()
+        if source.is_symlink():
+            os.symlink(os.readlink(source), target)
+            continue
         shutil.copy2(source, target)
     removed = []
     for target in sorted(mirror.rglob("*")):
@@ -182,6 +212,18 @@ def main() -> int:
         export(config, stage)
         gate_config = config.get("gate_config")
         gate(stage, config, Path(gate_config).resolve() if gate_config else None)
+        if args.dry_run:
+            changes = preview_changes(stage, mirror, protect)
+            say("")
+            say("dry run, nothing written to " + str(mirror))
+            for label in ("added", "modified", "removed"):
+                names = changes[label]
+                say("  " + label + ": " + str(len(names)))
+                for name in names[:10]:
+                    say("    " + name)
+                if len(names) > 10:
+                    say("    … " + str(len(names) - 10) + " more")
+            return 0
         removed = mirror_tree(stage, mirror, protect)
         if removed:
             say("removed " + str(len(removed)) + " stale file(s): " + ", ".join(removed[:8]))

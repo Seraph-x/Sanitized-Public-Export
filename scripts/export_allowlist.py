@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -77,11 +78,27 @@ def main() -> int:
     exported = []
     total = 0
     collisions = []
+    skipped_links = []
     for name in files:
         source = repo / name
+        target = output / renames.get(name, name)
+        if source.is_symlink():
+            # Never follow a link out of the repository: it would copy bytes the
+            # allowlist never approved. Links that stay inside are recreated.
+            link = os.readlink(source)
+            resolved = Path(link) if os.path.isabs(link) else (source.parent / link)
+            if not resolved.resolve().is_relative_to(repo):
+                skipped_links.append(name + " -> " + link)
+                continue
+            if target.exists() or target.is_symlink():
+                collisions.append(name + " -> " + target.relative_to(output).as_posix())
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            os.symlink(link, target)
+            exported.append({"source": name, "target": target.relative_to(output).as_posix(), "symlink": link})
+            continue
         if not source.is_file():
             continue
-        target = output / renames.get(name, name)
         if target.exists():
             collisions.append(name + " -> " + target.relative_to(output).as_posix())
             continue
@@ -107,6 +124,8 @@ def main() -> int:
         print("  renamed " + old + " -> " + new)
     for item in collisions:
         print("  skipped (target already written): " + item)
+    for item in skipped_links:
+        print("  skipped (symlink escapes the repository): " + item)
     return 0
 
 
