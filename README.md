@@ -47,6 +47,7 @@ restart.
 
     python3 scripts/redact.py /tmp/export --dry-run
     python3 scripts/redact.py /tmp/export --config gate.json
+    python3 scripts/redact.py /tmp/export --report redaction-report.md --check-history
 
     python3 scripts/mirror_sync.py --config mirror.json --dry-run
     python3 scripts/mirror_sync.py --config mirror.json --yes

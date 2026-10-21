@@ -28,7 +28,8 @@ screenshot, a pasted log, an archive attached to a message.
 - [ ] Rotate the key or token; removing it from the working tree changes nothing.
 - [ ] If the history will be published, rewrite it (`git filter-repo`) or
       publish a fresh single-commit history instead.
-- [ ] `redact.py` is for the artifact you hand over, not for the repository.
+- [ ] Run `redact.py . --report redaction-report.md --check-history` so the
+      rewrite and the history exposure are both recorded, not assumed.
 
 ## 3. Files that must not travel
 
