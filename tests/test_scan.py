@@ -98,9 +98,9 @@ class ScanTests(unittest.TestCase):
             self.assertNotIn(second, snippet)
 
     def test_a_token_containing_a_placeholder_word_is_still_a_leak(self):
-        token = "ghp_dummy" + "c" * 32
+        suspicious = "ghp_dummy" + "c" * 32
         with tempfile.TemporaryDirectory() as tmp:
-            (Path(tmp) / "a.txt").write_text("key: " + token + "\n", encoding="utf-8")
+            (Path(tmp) / "a.txt").write_text("key: " + suspicious + "\n", encoding="utf-8")
             report = run_scan(Path(tmp))
             self.assertEqual(report["patterns"]["github-token"]["unexpected"], 1)
 
