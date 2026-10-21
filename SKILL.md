@@ -93,6 +93,20 @@ The gate prints `total / fixture / unexpected` per pattern and exits non-zero wh
 - a home-path hit whose next character is not part of a name (`/Users/` alone);
 - an address under a reserved domain (`example.com`, `*.invalid`, `*.test`).
 
+### What the gate looks for
+
+| Group | Examples |
+| --- | --- |
+| Home paths and user names | `/Users/<name>`, `/home/<name>`, `C:\Users\<name>`, a bare user name |
+| Contact | e-mail addresses |
+| Keys and tokens | PEM private keys, `ghp_` / `github_pat_`, `AKIA`, `aws_secret_access_key`, `xox[baprs]-`, `sk-`, `AIza`, `npm_`, `pypi-`, `dckr_pat_` |
+| Session material | JWTs, `Bearer` tokens, `scheme://<user>:<password>@host`, cookie values (`cf_clearance`, `PHPSESSID`, `sessionid`, CSRF tokens) |
+| Assignments | `password = ...`, `api_key: ...`, `client_secret = ...`, `token: ...` |
+
+The gate only reports; it never rewrites a file. The companion DSH plugin
+`dsh-session-markdown-export` performs the same redaction when it writes a
+transcript, and returns per-category hit counts.
+
 Vendor trees are full of upstream authors' addresses; exclude those with
 `skip_globs` rather than allowing the whole `email` pattern. Binary payloads are
 only checked for credentials and home paths.

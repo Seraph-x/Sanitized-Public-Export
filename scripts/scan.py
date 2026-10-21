@@ -27,6 +27,14 @@ DEFAULT_PATTERNS = {
     "aws-key-id": r"AKIA[0-9A-Z]{16}",
     "slack-token": r"xox[baprs]-[A-Za-z0-9-]{10,}",
     "private-key": r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+    "jwt": r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b",
+    "basic-auth-url": r"\b[a-z][a-z0-9+.-]*://[^\s/:@]+:[^\s/@]+@",
+    "npm-token": r"\bnpm_[A-Za-z0-9]{30,}\b",
+    "pypi-token": r"\bpypi-[A-Za-z0-9_-]{40,}\b",
+    "docker-token": r"\bdckr_pat_[A-Za-z0-9_-]{20,}\b",
+    "aws-secret": r"aws_secret_access_key\s*[:=]\s*[\"']?[A-Za-z0-9/+=]{40}",
+    "credential-assignment": r"(?i)\b(password|passwd|pwd|secret|client[_-]?secret|api[_-]?key|access[_-]?key|auth[_-]?token|token)\b\s*[:=]\s*[\"']?[^\s\"',;]{8,}",
+    "cookie": r"\b(?:cf_clearance|PHPSESSID|JSESSIONID|sessionid|session_id|csrf_token|xsrf_token|XSRF-TOKEN|auth_token)\s*=\s*[^\s;,\"']{8,}",
 }
 
 HOME_PATTERNS = {"posix-home", "linux-home", "windows-home"}
@@ -46,7 +54,8 @@ RESERVED_EMAIL_DOMAINS = ("example.com", "example.org", "example.net", ".invalid
 # credentials and personal paths are worth reporting inside binary payloads.
 BINARY_PATTERNS = {
     "posix-home", "linux-home", "windows-home",
-    "github-token", "github-pat", "aws-key-id", "slack-token", "private-key",
+    "github-token", "github-pat", "aws-key-id", "aws-secret", "slack-token", "private-key",
+    "jwt", "npm-token", "pypi-token", "docker-token",
 }
 
 NAME_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
@@ -79,6 +88,11 @@ def is_fixture(name: str, text: str, match: re.Match[str], rel: str, config: dic
     line = text[line_start: line_end if line_end != -1 else len(text)]
     if any(token in line for token in placeholders):
         return True
+    if name == "basic-auth-url":
+        return "<" in match.group(0)
+    if name in ("credential-assignment", "cookie"):
+        value = match.group(0)
+        return "<" in value or "${" in value or "process.env" in value
     if name == "email":
         domain = match.group(0).rsplit("@", 1)[-1].lower()
         return any(domain == item.lstrip(".") or domain.endswith(item) for item in RESERVED_EMAIL_DOMAINS)
