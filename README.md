@@ -5,8 +5,9 @@ sanitized public mirror — without leaking a user name, home path, e-mail
 address, credential, or private note.
 
 Four scripts use only the Python standard library (3.9 and newer); SKILL.md is the
-procedure an agent follows, with the detail in references/. Nothing here depends on a particular agent framework: run the scripts
-from a shell, a CI job, a pre-commit hook, or any agent that reads SKILL.md.
+procedure an agent follows, with the detail in references/. Nothing here depends on
+a particular agent framework: run the scripts from a shell, a CI job, a pre-commit
+hook, or any agent that reads SKILL.md.
 
 ## Why
 
