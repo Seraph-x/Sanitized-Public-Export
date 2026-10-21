@@ -29,10 +29,14 @@ Run only what the request needs; loading this skill never means running all four
 
 ## Ask first: which publication mode?
 
-For "公开这个仓库" / "把这个项目开源" / "make this public", stop and ask:
+For "公开这个仓库" / "把这个项目开源" / "make this public", stop and ask —
+in the user's language — which of the two modes they want:
 
-> 公开方式有两种：1）直接把原仓库的可见性改成 public，保留全部历史；
-> 2）新建一个全新历史的脱敏公开库，原仓库不动。你要哪一种？
+> Publishing can happen two ways:
+> 1. flip the existing repository to public, keeping all of its history;
+> 2. create a new public repository with a fresh, sanitized history and leave
+>    the private one untouched.
+> Which one?
 
 If the answer is (1), scan the history, show the findings and the risks, and
 wait for explicit confirmation before running:
