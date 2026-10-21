@@ -58,7 +58,10 @@ def die(text):
 
 def load_config(path: Path) -> dict:
     config = dict(DEFAULTS)
-    config.update(json.loads(path.read_text(encoding="utf-8")))
+    try:
+        config.update(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError) as error:
+        die("cannot read config " + str(path) + ": " + str(error))
     for key in ("repo_url", "mirror_dir"):
         if not config.get(key):
             die("config is missing " + key)
@@ -202,7 +205,21 @@ def main() -> int:
     protect = set(config.get("protect", [".git", ".github"]))
 
     sha = check_private(private, args.allow_dirty)
-    update_mirror(config["repo_url"], mirror, branch)
+
+    # A dry run must not touch the mirror: no fetch, no checkout, no pull. When
+    # the checkout is missing it is cloned into a scratch directory instead.
+    preview_root = None
+    if args.dry_run:
+        # Compare against a throwaway clone of the remote, so the preview sees
+        # what a real publish would see without fetching into the checkout.
+        preview_root = Path(tempfile.mkdtemp(prefix="mirror-preview-"))
+        comparison = preview_root / "mirror"
+        clone = run(["git", "clone", "--quiet", "--depth", "1", config["repo_url"], str(comparison)], check=False)
+        if clone.returncode != 0:
+            comparison.mkdir(parents=True)
+    else:
+        update_mirror(config["repo_url"], mirror, branch)
+        comparison = mirror
 
     workdir = Path(tempfile.mkdtemp(prefix="public-mirror-"))
     try:
@@ -213,7 +230,7 @@ def main() -> int:
         gate_config = config.get("gate_config")
         gate(stage, config, Path(gate_config).resolve() if gate_config else None)
         if args.dry_run:
-            changes = preview_changes(stage, mirror, protect)
+            changes = preview_changes(stage, comparison, protect)
             say("")
             say("dry run, nothing written to " + str(mirror))
             for label in ("added", "modified", "removed"):
@@ -229,6 +246,8 @@ def main() -> int:
             say("removed " + str(len(removed)) + " stale file(s): " + ", ".join(removed[:8]))
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+        if preview_root is not None:
+            shutil.rmtree(preview_root, ignore_errors=True)
 
     if not capture(["git", "-C", str(mirror), "status", "--porcelain"]):
         say("")

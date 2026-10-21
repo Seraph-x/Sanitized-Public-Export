@@ -1,4 +1,5 @@
 """Regression tests for the leak gate."""
+from __future__ import annotations
 import json
 import subprocess
 import sys
@@ -87,6 +88,27 @@ class ScanTests(unittest.TestCase):
             self.assertNotIn(GITHUB_TOKEN, snippet)
             self.assertIn("…", snippet)
 
+    def test_every_token_on_a_line_is_masked(self):
+        second = "ghp_" + "b" * 36
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.txt").write_text("one " + GITHUB_TOKEN + " two " + second + "\n", encoding="utf-8")
+            report = run_scan(Path(tmp))
+            snippet = report["findings"][0]["snippet"]
+            self.assertNotIn(GITHUB_TOKEN, snippet)
+            self.assertNotIn(second, snippet)
+
+    def test_a_token_containing_a_placeholder_word_is_still_a_leak(self):
+        token = "ghp_dummy" + "c" * 32
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.txt").write_text("key: " + token + "\n", encoding="utf-8")
+            report = run_scan(Path(tmp))
+            self.assertEqual(report["patterns"]["github-token"]["unexpected"], 1)
+
+    def test_placeholder_value_is_a_fixture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.txt").write_text("password: <password>\n", encoding="utf-8")
+            report = run_scan(Path(tmp))
+            self.assertEqual(report["patterns"]["credential-assignment"]["unexpected"], 0)
 
 if __name__ == "__main__":
     unittest.main()

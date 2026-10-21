@@ -48,6 +48,14 @@ DEFAULT_PLACEHOLDERS = [
     "someuser", "testuser", "user@", "/Users/<", "/home/<",
 ]
 
+# A placeholder excuses a value only when the whole value is one. Substring
+# matching let a real token containing "dummy" pass as documentation.
+PLACEHOLDER_VALUE_PATTERNS = (
+    re.compile(r"^<[A-Za-z0-9_.:/ -]+>$"),
+    re.compile(r"^\$\{[A-Za-z0-9_.]+\}$"),
+    re.compile(r"(?i)^(example|sample|demo|dummy|placeholder|redacted|privateperson|yourname|someuser|testuser|your[-_]?[a-z0-9]*)([-_][a-z0-9]+)*$"),
+)
+
 DEFAULT_SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", ".build", "dist", ".mypy_cache"}
 
 # Addresses under these domains are documentation/test data, never a real person.
@@ -82,15 +90,21 @@ def build_patterns(config: dict) -> dict[str, re.Pattern[str]]:
     return {name: re.compile(pattern) for name, pattern in raw.items()}
 
 
+def is_placeholder_value(value: str, placeholders: list[str]) -> bool:
+    if value in placeholders or value in DEFAULT_PLACEHOLDERS:
+        return True
+    return any(pattern.match(value) for pattern in PLACEHOLDER_VALUE_PATTERNS)
+
+
 def is_fixture(name: str, text: str, match: re.Match[str], rel: str, config: dict, placeholders: list[str]) -> bool:
     detector_files = set(config.get("detector_files", []))
     if rel in detector_files:
         return True
     value = match.group(0)
-    # A placeholder only excuses the value it belongs to, never the whole line.
-    # Addresses are decided by their domain, so a domain that merely contains
-    # "example.com" (notexample.com) is still a leak.
-    if name != "email" and any(token in value for token in placeholders):
+    # A placeholder excuses the value only when the value itself is one: an
+    # exact token, a <bracketed> form, a shell variable, or a placeholder word.
+    # A real token that merely contains "dummy" stays a leak.
+    if name != "email" and is_placeholder_value(value, placeholders):
         return True
     if name == "basic-auth-url":
         return "<" in match.group(0)
@@ -115,6 +129,14 @@ def is_fixture(name: str, text: str, match: re.Match[str], rel: str, config: dic
             return True
         return not (following.isalnum() or ord(following) > 127 or following in "._-")
     return False
+
+
+def mask_line(line: str, patterns: dict[str, re.Pattern[str]]) -> str:
+    """Mask every sensitive value on the line, not just the one being reported."""
+    masked = line
+    for pattern in patterns.values():
+        masked = pattern.sub(lambda match: mask(match.group(0)), masked)
+    return masked
 
 
 def mask(value: str) -> str:
@@ -169,7 +191,7 @@ def scan(root: Path, config: dict, show_values: bool = False) -> dict:
                     line_start = text.rfind("\n", 0, match.start()) + 1
                     line_end = text.find("\n", match.end())
                     line = text[line_start: line_end if line_end != -1 else len(text)]
-                    snippet = line if show_values else line.replace(match.group(0), mask(match.group(0)))
+                    snippet = line if show_values else mask_line(line, patterns)
                     findings.append({"pattern": name, "file": rel, "line": line_no, "snippet": snippet[:160]})
     unexpected = sum(entry["unexpected"] for entry in results.values())
     return {"root": str(root), "files": files, "patterns": results, "findings": findings, "unexpected": unexpected}

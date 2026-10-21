@@ -1,4 +1,5 @@
 """Regression tests for the mirror sync."""
+from __future__ import annotations
 import json
 import subprocess
 import sys
@@ -70,6 +71,23 @@ class MirrorTests(unittest.TestCase):
         self.assertEqual(second.returncode, 0)
         self.assertIn("already matches", second.stdout)
 
+    def test_dry_run_does_not_move_the_mirror_head(self):
+        self.assertEqual(self.sync("--yes").returncode, 0)
+        work = self.root / "work"
+        before = git(work, "rev-parse", "HEAD")
+        other = self.root / "other"
+        subprocess.run(["git", "clone", "-q", str(self.bare), str(other)], check=True)
+        (other / "src").mkdir(exist_ok=True)
+        (other / "src" / "a.txt").write_text("remote\n", encoding="utf-8")
+        git(other, "config", "user.email", "x@y.z")
+        git(other, "config", "user.name", "x")
+        git(other, "add", "-A")
+        git(other, "commit", "-qm", "remote change")
+        git(other, "push", "-q", "origin", "main")
+        result = self.sync("--dry-run")
+        self.assertIn("dry run", result.stdout)
+        self.assertEqual(git(work, "rev-parse", "HEAD"), before)
+        self.assertEqual(git(work, "status", "--porcelain"), "")
 
 if __name__ == "__main__":
     unittest.main()

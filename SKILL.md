@@ -98,9 +98,9 @@ Never delete or rename the private repository to free the name.
 
     python3 "$SKILL_DIR/scripts/export_allowlist.py" --repo ~/src/MyProject --output /tmp/export --include Sources/ --include Resources/ --include scripts/ --include docs/help/ --root-file README.md --root-file .gitignore --root-file Package.swift --rename PUBLIC_README.md=README.md --license-from Resources/ThirdParty/LICENSE.GPLv3 --license-to LICENSE
 
-Symlinks are copied as links when they stay inside the repository and skipped
-when they point outside, so the export never carries bytes the allowlist did not
-approve.
+Symlinks stay links only when their target is exported too: an absolute link is
+rewritten relative, and a link pointing outside the repository or at an excluded
+file is skipped, so the export never carries bytes the allowlist did not approve.
 
 Rules of thumb:
 
@@ -126,7 +126,7 @@ Rules of thumb:
     }
 
 The gate prints `total / fixture / retained / unexpected` per pattern and exits
-non-zero while `unexpected` is above zero. Findings are masked by default;
+non-zero while `unexpected` is above zero. Findings mask every sensitive value on the line, not just the reported one;
 `--show-values` prints them verbatim for local work only. Only these count as
 fixtures:
 

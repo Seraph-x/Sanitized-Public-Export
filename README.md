@@ -4,7 +4,7 @@ A standalone toolkit and agent skill for publishing a private repository as a
 sanitized public mirror — without leaking a user name, home path, e-mail
 address, credential, or private note.
 
-Four scripts use only the Python standard library; SKILL.md is the procedure an
+Four scripts use only the Python standard library (3.9 and newer); SKILL.md is the procedure an
 agent follows. Nothing here depends on a particular agent framework: run the scripts
 from a shell, a CI job, a pre-commit hook, or any agent that reads SKILL.md.
 
@@ -73,8 +73,9 @@ values never land in a commit.
 A hit counts as a fixture when the file is a declared detector, the matched value
 contains a placeholder such as `<user>`, a home path is followed by punctuation
 instead of a name, or the address uses a reserved domain (`example.com`,
-`*.invalid`, `*.test`). Findings are masked by default so a token cannot leak
-into a terminal or CI log; pass `--show-values` only when working locally.
+`*.invalid`, `*.test`). Findings are masked by default — every sensitive value on the reported line,
+not just the one that triggered it — so a token cannot leak into a terminal or
+CI log; pass `--show-values` only when working locally.
 
 Values listed in `gate.json`'s `retain` array count as *retained*: they are
 reported, not rewritten, and do not fail the gate. Everything else is a leak.
@@ -84,9 +85,9 @@ reported, not rewritten, and do not fail the gate. Everything else is a leak.
     python3 -m unittest discover -s tests -v
 
 The suite covers the gate (placeholder scope, domain boundaries, non-ASCII user
-names, bearer tokens, retention, masking), the exporter (symlinks that escape the
-repository) and the mirror (dry runs leave the checkout untouched, publishing is
-idempotent). CI runs it on Linux and macOS with Python 3.9 and 3.12, then dogfoods
+names, bearer tokens, retention, whole-line masking, tokens containing placeholder
+words), the exporter (escaping symlinks are skipped, internal ones become relative)
+and the mirror (dry runs neither write nor fetch, publishing is idempotent). CI runs it on Linux and macOS with Python 3.9 and 3.12, then dogfoods
 the gate on this repository.
 
 ## Repository layout

@@ -1,4 +1,5 @@
 """Regression tests for the allowlist exporter."""
+from __future__ import annotations
 import os
 import subprocess
 import sys
@@ -57,6 +58,19 @@ class ExportTests(unittest.TestCase):
             self.assertTrue(copied.is_symlink())
             self.assertEqual(os.readlink(copied), "a.txt")
 
+    def test_absolute_internal_symlink_becomes_relative(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            repo = self.make_repo(tmp_path)
+            os.symlink(str(repo / "src" / "a.txt"), repo / "src" / "abs.txt")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-qm", "init")
+            out = tmp_path / "out"
+            self.export(repo, out)
+            copied = out / "src" / "abs.txt"
+            self.assertTrue(copied.is_symlink())
+            self.assertEqual(os.readlink(copied), "a.txt")
+            self.assertTrue((out / "src" / "a.txt").exists())
 
 if __name__ == "__main__":
     unittest.main()
