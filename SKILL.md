@@ -157,8 +157,8 @@ whole detector:
       "retain": ["sk-demo-…"]
     }
 
-The gate then reports those hits in a @BT@retained@BT@ column and does not fail on them,
-@BT@redact.py@BT@ leaves them untouched, and every other value is still rewritten. The
+The gate then reports those hits in a `retained` column and does not fail on them,
+`redact.py` leaves them untouched, and every other value is still rewritten. The
 report lists what was retained, so the exception is visible rather than silent.
 
 Conditions to state in the same report:
