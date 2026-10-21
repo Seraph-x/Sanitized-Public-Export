@@ -55,7 +55,11 @@ NAME_CHARS = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 def load_config(path: str | None) -> dict:
     if path is None:
         return {}
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        print("invalid gate config " + path + ": " + str(error), file=sys.stderr)
+        raise SystemExit(2)
 
 
 def build_patterns(config: dict) -> dict[str, re.Pattern[str]]:
