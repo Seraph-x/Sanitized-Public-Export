@@ -4,8 +4,8 @@ A standalone toolkit and agent skill for publishing a private repository as a
 sanitized public mirror — without leaking a user name, home path, e-mail
 address, credential, or private note.
 
-Four scripts use only the Python standard library (3.9 and newer); SKILL.md is the procedure an
-agent follows. Nothing here depends on a particular agent framework: run the scripts
+Four scripts use only the Python standard library (3.9 and newer); SKILL.md is the
+procedure an agent follows, with the detail in references/. Nothing here depends on a particular agent framework: run the scripts
 from a shell, a CI job, a pre-commit hook, or any agent that reads SKILL.md.
 
 ## Why
@@ -100,12 +100,16 @@ on this repository.
 
 ## Repository layout
 
-    SKILL.md                     the skill instructions
+    SKILL.md                     the procedure an agent follows (short)
+    references/gate.md           patterns, fixtures, masking, config
+    references/export.md         allowlist rules and symlink policy
+    references/keys.md           rewrite, retain, rotate; internal handoff
+    references/mirror.md         mirror config, guards, dry run
+    references/checklist.md      pre-publish checklist and real leaks
     scripts/export_allowlist.py  tracked-file allowlist export
     scripts/scan.py              fixture-aware leak gate
     scripts/redact.py            rewrite secrets in a checkout or exported copy
     scripts/mirror_sync.py       export + gate + mirror + commit + push
-    references/checklist.md      pre-publish checklist and real leaks
     templates/gate.json          starter gate config
     templates/mirror.json        starter mirror config
     tests/                       regression suite
