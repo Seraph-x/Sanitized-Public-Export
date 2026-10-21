@@ -23,6 +23,13 @@ screenshot, a pasted log, an archive attached to a message.
 - [ ] Real cookie **names** (not just values) are also fingerprints when they
       carry an account-specific suffix.
 
+## 2b. A secret that reached a commit is compromised
+
+- [ ] Rotate the key or token; removing it from the working tree changes nothing.
+- [ ] If the history will be published, rewrite it (`git filter-repo`) or
+      publish a fresh single-commit history instead.
+- [ ] `redact.py` is for the artifact you hand over, not for the repository.
+
 ## 3. Files that must not travel
 
 - [ ] `__pycache__/`, `.pyc`, `.build/`, `dist/`, `node_modules/`, `.venv/` deleted or

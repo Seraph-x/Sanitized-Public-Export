@@ -19,6 +19,7 @@ with three deterministic steps:
 | Allowlist | `scripts/export_allowlist.py` | the file list comes from `git ls-files`, so untracked and generated files cannot ride along |
 | Gate | `scripts/scan.py` | every hit is classified as fixture or leak; a single leak stops the pipeline |
 | Mirror | `scripts/mirror_sync.py` | the exported tree replaces the public checkout wholesale, committed as a noreply identity, with the remote head verified |
+| Redact | `scripts/redact.py` | rewrites secrets and personal data in an exported copy; refuses a git checkout |
 
 ## Install as a DSH skill
 
@@ -43,6 +44,9 @@ restart.
       --license-from Resources/ThirdParty/LICENSE.GPLv3 --license-to LICENSE
 
     python3 scripts/scan.py /tmp/export --config gate.json
+
+    python3 scripts/redact.py /tmp/export --dry-run
+    python3 scripts/redact.py /tmp/export --config gate.json
 
     python3 scripts/mirror_sync.py --config mirror.json --dry-run
     python3 scripts/mirror_sync.py --config mirror.json --yes
@@ -69,6 +73,7 @@ non-name character, or the address uses a reserved domain (`example.com`,
     SKILL.md                     the skill instructions
     scripts/export_allowlist.py  tracked-file allowlist export
     scripts/scan.py              fixture-aware leak gate
+    scripts/redact.py            rewrite secrets in an exported copy
     scripts/mirror_sync.py       export + gate + mirror + commit + push
     references/checklist.md      pre-publish checklist and real leaks
     templates/gate.json          starter gate config
