@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Rewrite secrets and personal data in a copy of a tree.
+"""Rewrite secrets and personal data in a tree.
 
 This is the replacement half of the gate: scan.py reports, redact.py rewrites.
-It is meant for an *exported copy* — documentation, transcripts, logs, sample
-configs — never for the private working tree. A secret that already reached a
-commit must be rotated; rewriting the file does not remove it from history.
+It works on a checkout as well as on an exported copy; when the target is a git
+repository it records that history was not rewritten, and --check-history lists
+the commits that still contain the redacted values.
 
     python3 redact.py /tmp/export --dry-run
     python3 redact.py /tmp/export
@@ -160,7 +160,7 @@ def load_config(path: Path | None) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Rewrite secrets and personal data in an exported copy.")
-    parser.add_argument("root", help="directory to rewrite (an exported copy, not the private checkout)")
+    parser.add_argument("root", help="directory to rewrite (a checkout or an exported copy)")
     parser.add_argument("--config", help="JSON config with literals and extra patterns")
     parser.add_argument("--dry-run", action="store_true", help="report without writing")
     parser.add_argument("--report", help="write a Markdown report of what was rewritten")
