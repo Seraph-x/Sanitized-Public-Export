@@ -103,9 +103,8 @@ The gate prints `total / fixture / unexpected` per pattern and exits non-zero wh
 | Session material | JWTs, `Bearer` tokens, `scheme://<user>:<password>@host`, cookie values (`cf_clearance`, `PHPSESSID`, `sessionid`, CSRF tokens) |
 | Assignments | `password = ...`, `api_key: ...`, `client_secret = ...`, `token: ...` |
 
-The gate only reports; it never rewrites a file. The companion DSH plugin
-`dsh-session-markdown-export` performs the same redaction when it writes a
-transcript, and returns per-category hit counts.
+The gate only reports; it never rewrites a file. When the artifact needs the
+values replaced rather than reported, run the redaction step below.
 
 Vendor trees are full of upstream authors' addresses; exclude those with
 `skip_globs` rather than allowing the whole `email` pattern. Binary payloads are
