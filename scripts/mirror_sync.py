@@ -84,12 +84,21 @@ def update_mirror(url: str, mirror: Path, branch: str) -> None:
         say("cloning " + url + " -> " + str(mirror))
         mirror.parent.mkdir(parents=True, exist_ok=True)
         run(["git", "clone", "--quiet", url, str(mirror)], quiet=False)
+    tracked = capture(["git", "-C", str(mirror), "remote", "get-url", "origin"])
+    if tracked != url:
+        # Pushing would reach the old remote while the report names the new one.
+        die("mirror checkout tracks " + tracked + " but the config says " + url + "; "
+            "update the remote (git remote set-url origin ...) or use another directory")
     run(["git", "-C", str(mirror), "fetch", "--quiet", "origin"], check=False)
     has_remote = run(["git", "-C", str(mirror), "rev-parse", "--verify", "--quiet", "origin/" + branch], check=False)
     if has_remote.returncode != 0:
         # A brand-new repository has no commits yet: start an orphan branch and
-        # let the first sync create it.
-        run(["git", "-C", str(mirror), "checkout", "--quiet", "--orphan", branch], check=False)
+        # let the first sync create it. A checkout that already has history is
+        # refused, because publishing it would carry that history to the remote.
+        if run(["git", "-C", str(mirror), "rev-parse", "--verify", "--quiet", "HEAD"], check=False).returncode == 0:
+            die("remote has no " + branch + " but the mirror checkout already has commits; "
+                "publishing would carry that history. Use a fresh directory or reset it deliberately")
+        run(["git", "-C", str(mirror), "checkout", "--quiet", "--orphan", branch])
         return
     run(["git", "-C", str(mirror), "checkout", "--quiet", branch])
     pull = run(["git", "-C", str(mirror), "pull", "--quiet", "--ff-only", "origin", branch], check=False)

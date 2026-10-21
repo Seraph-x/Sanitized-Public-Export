@@ -115,6 +115,12 @@ class ScanTests(unittest.TestCase):
             report = run_scan(Path(tmp))
             snippet = report["findings"][0]["snippet"]
             self.assertNotIn("PrivateAlice", snippet)
+    def test_paths_with_brackets_or_query_are_still_leaks(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.txt").write_text("[/Users/" + "PrivateAlice" + "]" + chr(10), encoding="utf-8")
+            (Path(tmp) / "b.txt").write_text("/Users/" + "PrivateAlice" + "?view=1" + chr(10), encoding="utf-8")
+            report = run_scan(Path(tmp))
+            self.assertEqual(report["patterns"]["posix-home"]["unexpected"], 2)
 
 if __name__ == "__main__":
     unittest.main()

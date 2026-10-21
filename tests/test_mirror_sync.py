@@ -110,6 +110,37 @@ class MirrorTests(unittest.TestCase):
         result = self.sync("--dry-run")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("cannot read the remote for a preview", result.stderr)
+    def test_mirror_tracking_another_remote_is_refused(self):
+        self.assertEqual(self.sync("--yes").returncode, 0)
+        other = self.root / "other.git"
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(other)], check=True)
+        config = json.loads(self.config.read_text())
+        config["repo_url"] = str(other)
+        self.config.write_text(json.dumps(config), encoding="utf-8")
+        result = self.sync("--yes")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("tracks", result.stderr)
+        count = subprocess.run(["git", "-C", str(other), "rev-list", "--all", "--count"],
+                               capture_output=True, text=True).stdout.strip()
+        self.assertEqual(count, "0")
+
+    def test_empty_remote_with_local_history_is_refused(self):
+        fresh = self.root / "fresh.git"
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(fresh)], check=True)
+        work = self.root / "work"
+        subprocess.run(["git", "clone", "-q", str(fresh), str(work)], check=True)
+        (work / "stale.txt").write_text("stale", encoding="utf-8")
+        git(work, "add", "-A")
+        git(work, "-c", "user.email=x@y.z", "-c", "user.name=x", "commit", "-qm", "stale")
+        config = json.loads(self.config.read_text())
+        config["repo_url"] = str(fresh)
+        self.config.write_text(json.dumps(config), encoding="utf-8")
+        result = self.sync("--yes")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("already has commits", result.stderr)
+        count = subprocess.run(["git", "-C", str(fresh), "rev-list", "--all", "--count"],
+                               capture_output=True, text=True).stdout.strip()
+        self.assertEqual(count, "0")
 
 if __name__ == "__main__":
     unittest.main()

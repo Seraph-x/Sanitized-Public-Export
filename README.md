@@ -92,7 +92,8 @@ The suite covers the gate (placeholder scope, domain boundaries, non-ASCII user
 names, bearer tokens, retention, whole-line masking, tokens containing placeholder
 words), the exporter (escaping symlinks are skipped, internal ones become relative)
 and the mirror (dry runs neither write nor fetch, an unreachable remote fails the
-preview, a checkout ahead of origin is refused, publishing is idempotent).
+preview, a checkout ahead of origin or tracking another remote is refused, an empty
+remote with local history is refused, publishing is idempotent).
 
 CI runs the suite on Linux and macOS with Python 3.9 and 3.12, then dogfoods the gate
 on this repository.

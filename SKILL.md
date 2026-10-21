@@ -232,8 +232,9 @@ environment; keep `redact.py` for the artifact you are about to hand over.
     }
 
 The script refuses a dirty private tree (override with `--allow-dirty`), refuses a
-public checkout that diverged from or is ahead of its remote (unpublished commits
-would otherwise be published), deletes files that are no longer exported, commits with
+public checkout that diverged from, is ahead of, or tracks a different remote than
+the configured one (unpublished commits, or the wrong repository, would otherwise be
+published), refuses an empty remote when the checkout already has history, deletes files that are no longer exported, commits with
 the configured noreply identity, retries the push three times, and asserts that
 `git ls-remote` matches the local head.
 
