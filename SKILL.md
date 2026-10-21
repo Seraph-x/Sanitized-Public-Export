@@ -154,7 +154,7 @@ project — a demo API key, a sandbox token. Declare it instead of disabling a
 whole detector:
 
     {
-      "retain": ["sk-demo-0123456789abcdefghij"]
+      "retain": ["sk-demo-…"]
     }
 
 The gate then reports those hits in a @BT@retained@BT@ column and does not fail on them,
