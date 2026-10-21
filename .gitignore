@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+
+# Personal gate/mirror configs hold real user names and repository URLs.
+gate.json
+mirror.json
