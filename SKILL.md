@@ -1,6 +1,6 @@
 ---
 name: sanitized-public-export
-description: Publish a private repository as a sanitized public mirror, or hand a project to a third party without leaking personal paths, user names, e-mail addresses, credentials, or private notes. Covers allowlist export, leak scanning with a fixture-aware gate, mirror sync to GitHub, and verification that the published source still builds.
+description: Publish a private repository as a sanitized public mirror — 脱敏发布 / 开源 / 公开仓库 / 交付源码给外部 — without leaking personal paths, user names, e-mail addresses, credentials, or private notes. Allowlist export, fixture-aware leak gate, redaction, mirror sync to GitHub, and build verification; also for auditing a tree before zipping, uploading, or attaching it.
 whenToUse: Use when asked to 脱敏发布 / 开源这个项目 / 同步到公开仓库 / 交付源码给外部 / publish this privately-developed project / audit a tree before it leaves the machine. Also use before uploading an archive, attaching a screenshot, or zipping a deliverable.
 ---
 
@@ -111,6 +111,19 @@ language the app supports. Re-verify the signature after packaging.
 - Commit as `Name <Name@users.noreply.github.com>` in the public mirror.
 - Never push the private history to the public remote, not even once.
 - Check the archive after zipping, not the directory before it.
+
+## How to use these files
+
+Load one reference at a time, for the step you are on: `gate.md` when scanning, `export.md` when exporting,
+`mirror.md` when publishing, `keys.md` only when a credential decision comes up. Do not read
+them all up front.
+
+`mirror_sync.py` already exports and gates internally; do not run `export_allowlist.py`
+and `scan.py` over the same tree first. Re-run the gate only after you changed
+the source or redacted something.
+
+Report counts, paths and exit status; expand a finding only when it needs a
+decision. Keep the error text.
 
 ## Files
 
