@@ -88,6 +88,28 @@ class MirrorTests(unittest.TestCase):
         self.assertIn("dry run", result.stdout)
         self.assertEqual(git(work, "rev-parse", "HEAD"), before)
         self.assertEqual(git(work, "status", "--porcelain"), "")
+    def test_unpushed_local_commit_aborts_instead_of_publishing(self):
+        self.assertEqual(self.sync("--yes").returncode, 0)
+        work = self.root / "work"
+        (work / "local-only.txt").write_text("secret", encoding="utf-8")
+        git(work, "add", "-A")
+        git(work, "-c", "user.email=x@y.z", "-c", "user.name=x", "commit", "-qm", "local only")
+        result = self.sync("--yes")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("local commits would be published", result.stderr)
+        listing = subprocess.run(
+            ["git", "-C", str(self.bare), "cat-file", "-e", "main:local-only.txt"],
+            capture_output=True,
+        )
+        self.assertNotEqual(listing.returncode, 0)
+
+    def test_missing_remote_fails_the_preview(self):
+        config = json.loads(self.config.read_text())
+        config["repo_url"] = str(self.root / "missing.git")
+        self.config.write_text(json.dumps(config), encoding="utf-8")
+        result = self.sync("--dry-run")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot read the remote for a preview", result.stderr)
 
 if __name__ == "__main__":
     unittest.main()

@@ -18,9 +18,9 @@ import sys
 from pathlib import Path
 
 DEFAULT_PATTERNS = {
-    "posix-home": r"/Users/",
-    "linux-home": r"/home/",
-    "windows-home": r"[A-Za-z]:\\Users\\",
+    "posix-home": r"/Users/[^/\s\"'():;,]+",
+    "linux-home": r"/home/[^/\s\"'():;,]+",
+    "windows-home": r"[A-Za-z]:\\Users\\[^\\\s\"'():;,]+",
     "email": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}",
     "github-token": r"gh[pousr]_[A-Za-z0-9]{20,}",
     "github-pat": r"github_pat_[A-Za-z0-9_]{20,}",
@@ -122,12 +122,9 @@ def is_fixture(name: str, text: str, match: re.Match[str], rel: str, config: dic
                 return True
         return False
     if name in HOME_PATTERNS:
-        following = text[match.end(): match.end() + 1]
-        # A name may be ASCII or any non-ASCII script; punctuation after the
-        # prefix means the path was written without a user name.
-        if following == "":
-            return True
-        return not (following.isalnum() or ord(following) > 127 or following in "._-")
+        # The pattern captures prefix plus name; a placeholder name is a fixture.
+        segment = re.split(r"[/\\]", value)[-1]
+        return segment == "" or is_placeholder_value(segment, placeholders)
     return False
 
 

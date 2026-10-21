@@ -97,6 +97,13 @@ def update_mirror(url: str, mirror: Path, branch: str) -> None:
         die("public checkout diverged from origin/" + branch + "; reconcile " + str(mirror) + " first")
     if capture(["git", "-C", str(mirror), "status", "--porcelain"]):
         die("public checkout has local changes; commit or discard them first")
+    local = capture(["git", "-C", str(mirror), "rev-parse", "HEAD"])
+    remote = capture(["git", "-C", str(mirror), "rev-parse", "origin/" + branch])
+    if local != remote:
+        # pull --ff-only is a no-op when the branch is ahead, so an unpushed
+        # local commit would otherwise be published along with the mirror.
+        die("public checkout is not at origin/" + branch + "; local commits would be published. "
+            "Push or reset them deliberately, then retry")
 
 
 def export(config: dict, stage: Path) -> int:
@@ -214,9 +221,12 @@ def main() -> int:
         # what a real publish would see without fetching into the checkout.
         preview_root = Path(tempfile.mkdtemp(prefix="mirror-preview-"))
         comparison = preview_root / "mirror"
-        clone = run(["git", "clone", "--quiet", "--depth", "1", config["repo_url"], str(comparison)], check=False)
+        clone = subprocess.run(
+            ["git", "clone", "--quiet", "--depth", "1", config["repo_url"], str(comparison)],
+            capture_output=True, text=True,
+        )
         if clone.returncode != 0:
-            comparison.mkdir(parents=True)
+            die("cannot read the remote for a preview: " + (clone.stderr.strip() or "git clone failed"))
     else:
         update_mirror(config["repo_url"], mirror, branch)
         comparison = mirror

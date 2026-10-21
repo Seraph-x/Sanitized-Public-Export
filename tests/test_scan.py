@@ -65,7 +65,7 @@ class ScanTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / "a.txt").write_text("prefix: /Users/ alone\n", encoding="utf-8")
             report = run_scan(Path(tmp))
-            self.assertEqual(report["patterns"]["posix-home"]["unexpected"], 0)
+            self.assertEqual(report["patterns"].get("posix-home", {}).get("unexpected", 0), 0)
 
     def test_bearer_token_is_detected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -109,6 +109,12 @@ class ScanTests(unittest.TestCase):
             (Path(tmp) / "a.txt").write_text("password: <password>\n", encoding="utf-8")
             report = run_scan(Path(tmp))
             self.assertEqual(report["patterns"]["credential-assignment"]["unexpected"], 0)
+    def test_snippet_hides_the_user_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "a.txt").write_text("home: /Users/" + "PrivateAlice" + "/project" + chr(10), encoding="utf-8")
+            report = run_scan(Path(tmp))
+            snippet = report["findings"][0]["snippet"]
+            self.assertNotIn("PrivateAlice", snippet)
 
 if __name__ == "__main__":
     unittest.main()
