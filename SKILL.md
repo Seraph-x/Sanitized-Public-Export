@@ -131,7 +131,7 @@ non-zero while `unexpected` is above zero. Findings are masked by default;
 fixtures:
 
 - a file listed in `detector_files` (the scanner's own patterns and test data);
-- a line containing a placeholder such as `<user>`, `example.com`, `placeholder`;
+- the matched value itself contains a placeholder such as `<user>` or `placeholder`;
 - a home-path hit whose next character is not part of a name (`/Users/` alone);
 - an address under a reserved domain (`example.com`, `*.invalid`, `*.test`).
 
