@@ -73,7 +73,9 @@ values never land in a commit.
 A hit counts as a fixture when the file is a declared detector, the line holds a
 placeholder such as `<user>` or `example.com`, a home path is followed by a
 non-name character, or the address uses a reserved domain (`example.com`,
-`*.invalid`, `*.test`). Values listed in `gate.json`'s `retain` array count as *retained*: they are
+`*.invalid`, `*.test`).
+
+Values listed in `gate.json`'s `retain` array count as *retained*: they are
 reported, not rewritten, and do not fail the gate. Everything else is a leak.
 
 ## Repository layout
