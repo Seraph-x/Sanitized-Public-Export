@@ -4,8 +4,9 @@ A [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) skill for 
 repository as a sanitized public mirror — without leaking a user name, home
 path, e-mail address, credential, or private note.
 
-It is also useful outside DSH: the three scripts are plain Python 3 with no
-dependencies and work on any git repository.
+It is also useful outside DSH: the four scripts use only the Python standard
+library and work on any git repository. The DSH-specific part is just SKILL.md
+discovery; the scripts run the same from a shell, a CI job, or a pre-commit hook.
 
 ## Why
 
