@@ -18,6 +18,30 @@ not a control. This skill replaces hand work with three deterministic steps:
 3. **Mirror** — the exported tree replaces the public checkout wholesale, with a
    neutral commit identity and a verified remote head.
 
+## Pick the smallest path
+
+This is a procedure, not a pipeline. Run only the steps the request needs;
+loading the skill never means running all five.
+
+| Situation | Steps | Command |
+| --- | --- | --- |
+| Sending a zip, screenshot, log, or archive to someone | 2 only, on the extracted copy | `scan.py /tmp/unzipped` |
+| Changed README or docs, want a leak check | 2 only, on the repository | `scan.py . --config gate.json` |
+| First public release of a private repository | 1 → 2 → 3, then 4 if the project must build from source | `export_allowlist.py`, `scan.py`, `mirror_sync.py` |
+| Routine update of an existing public mirror | 3 only (it re-exports and re-scans internally) | `mirror_sync.py --config mirror.json --yes` |
+| Shipping a DMG or other binary | 5 only, plus 2 over the install notes | `scan.py` on the DMG staging directory |
+| Deciding whether a directory can be published at all | 2 only, JSON output | `scan.py DIR --config gate.json --json` |
+
+Escalate only when the input changes shape — a new repository, a new artifact
+type, a new directory tree. Re-running an unchanged step adds nothing:
+
+- the gate is read-only and repeatable, but a clean tree stays clean;
+- `export_allowlist.py` writes a fresh directory and refuses to overwrite;
+- `mirror_sync.py` prints `already matches the export` and exits 0 when nothing changed.
+
+Never run steps 1–3 "for completeness" when the request is only a local audit,
+and never publish a mirror without step 2.
+
 Set the skill directory once per shell:
 
     SKILL_DIR="${DSH_HOME:-$HOME/.dsh}/skills/sanitized-public-export"
