@@ -114,6 +114,29 @@ only checked for credentials and home paths.
 Fix a leak by editing the source, not by adding an allow rule. Re-run until the
 gate prints `RESULT: clean`.
 
+## Step 2b — rewrite the copy (only when replacement is the right fix)
+
+`scan.py` reports; `redact.py` rewrites. Run it on the exported copy when the
+artifact is prose — documentation, transcripts, logs, sample configs — and the
+value can be replaced rather than deleted:
+
+    python3 "$SKILL_DIR/scripts/redact.py" /tmp/export --dry-run
+    python3 "$SKILL_DIR/scripts/redact.py" /tmp/export --config gate.json
+
+It rewrites home paths, user names, e-mail addresses, PEM private keys, GitHub /
+AWS / Slack / OpenAI / Google / npm / PyPI / Docker tokens, JWTs, bearer tokens,
+`scheme://<user>:<password>@host` URLs, cookie values, and `password = …` style
+assignments, then prints a per-category count. It refuses a directory that
+contains `.git`, because rewriting a checkout does not remove a secret from
+history.
+
+### Secrets are not a formatting problem
+
+A key or token that reached a commit is compromised: rotate it, and rewrite the
+history if the repository will be published. Replacing it with `<token>` only
+hides it. For source code, delete the credential and read it from the
+environment; keep `redact.py` for the artifact you are about to hand over.
+
 ## Step 3 — mirror it
 
     python3 "$SKILL_DIR/scripts/mirror_sync.py" --config mirror.json --dry-run
@@ -178,6 +201,7 @@ without re-verifying the signature after packaging.
 | --- | --- |
 | `scripts/export_allowlist.py` | git-tracked allowlist export with renames and licence copy |
 | `scripts/scan.py` | fixture-aware leak gate over a tree |
+| `scripts/redact.py` | rewrite secrets and personal data in an exported copy |
 | `scripts/mirror_sync.py` | export + gate + mirror + commit + push + remote assertion |
 | `templates/gate.json` | starter gate config |
 | `templates/mirror.json` | starter mirror config |
