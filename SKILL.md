@@ -37,7 +37,8 @@ For "公开这个仓库" / "把这个项目开源" / "make this public", stop an
 If the answer is (1), scan the history, show the findings and the risks, and
 wait for explicit confirmation before running:
 
-    git log --all -p | python3 "$SKILL_DIR/scripts/scan.py" /dev/stdin
+    mkdir -p /tmp/history && git log --all -p > /tmp/history/history.patch
+    python3 "$SKILL_DIR/scripts/scan.py" /tmp/history
     gh repo edit Owner/Name --visibility public --accept-visibility-change-consequences
 
 Risks to state: the whole history becomes public (paths, scratch files,
